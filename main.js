@@ -1,11 +1,9 @@
 import './style.css';
-
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 
 const firebaseConfig = {
-  // your config
-   apiKey: "AIzaSyDooJlQCfk104yS4XzOj1bgpVEoOB8rTnQ",
+  apiKey: "AIzaSyDooJlQCfk104yS4XzOj1bgpVEoOB8rTnQ",
   authDomain: "webrtc-demo-33437.firebaseapp.com",
   projectId: "webrtc-demo-33437",
   storageBucket: "webrtc-demo-33437.firebasestorage.app",
@@ -28,12 +26,10 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-// Global State
-const pc = new RTCPeerConnection(servers);
+// Global media
 let localStream = null;
-let remoteStream = null;
 
-// HTML elements
+// DOM Elements
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
 const callButton = document.getElementById('callButton');
@@ -42,47 +38,44 @@ const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 
-// 1. Setup media sources
-
+// Start webcam
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  remoteStream = new MediaStream();
-
-  // Push tracks from local stream to peer connection
-  localStream.getTracks().forEach((track) => {
-    pc.addTrack(track, localStream);
-  });
-
-  // Pull tracks from remote stream, add to video stream
-  pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-  };
-
   webcamVideo.srcObject = localStream;
-  remoteVideo.srcObject = remoteStream;
 
+  webcamButton.disabled = true;
   callButton.disabled = false;
   answerButton.disabled = false;
-  webcamButton.disabled = true;
 };
 
-// 2. Create an offer
+// Caller
 callButton.onclick = async () => {
-  // Reference Firestore collections for signaling
+  const pc = new RTCPeerConnection(servers);
+  const remoteStream = new MediaStream();
+  remoteVideo.srcObject = remoteStream;
+
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.ontrack = event => {
+    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    console.log('Remote track received:', event.streams);
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log('ICE state:', pc.iceConnectionState);
+  };
+
   const callDoc = firestore.collection('calls').doc();
   const offerCandidates = callDoc.collection('offerCandidates');
   const answerCandidates = callDoc.collection('answerCandidates');
-
   callInput.value = callDoc.id;
 
-  // Get candidates for caller, save to db
-  pc.onicecandidate = (event) => {
-    event.candidate && offerCandidates.add(event.candidate.toJSON());
+  pc.onicecandidate = event => {
+    if (event.candidate) {
+      offerCandidates.add(event.candidate.toJSON());
+    }
   };
 
-  // Create offer
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
 
@@ -93,8 +86,7 @@ callButton.onclick = async () => {
 
   await callDoc.set({ offer });
 
-  // Listen for remote answer
-  callDoc.onSnapshot((snapshot) => {
+  callDoc.onSnapshot(snapshot => {
     const data = snapshot.data();
     if (!pc.currentRemoteDescription && data?.answer) {
       const answerDescription = new RTCSessionDescription(data.answer);
@@ -102,9 +94,8 @@ callButton.onclick = async () => {
     }
   });
 
-  // When answered, add candidate to peer connection
-  answerCandidates.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
+  answerCandidates.onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
       if (change.type === 'added') {
         const candidate = new RTCIceCandidate(change.doc.data());
         pc.addIceCandidate(candidate);
@@ -115,15 +106,32 @@ callButton.onclick = async () => {
   hangupButton.disabled = false;
 };
 
-// 3. Answer the call with the unique ID
+// Callee
 answerButton.onclick = async () => {
   const callId = callInput.value;
   const callDoc = firestore.collection('calls').doc(callId);
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
 
-  pc.onicecandidate = (event) => {
-    event.candidate && answerCandidates.add(event.candidate.toJSON());
+  const pc = new RTCPeerConnection(servers);
+  const remoteStream = new MediaStream();
+  remoteVideo.srcObject = remoteStream;
+
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.ontrack = event => {
+    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
+    console.log('Remote track received:', event.streams);
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    console.log('ICE state:', pc.iceConnectionState);
+  };
+
+  pc.onicecandidate = event => {
+    if (event.candidate) {
+      answerCandidates.add(event.candidate.toJSON());
+    }
   };
 
   const callData = (await callDoc.get()).data();
@@ -141,13 +149,14 @@ answerButton.onclick = async () => {
 
   await callDoc.update({ answer });
 
-  offerCandidates.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      console.log(change);
+  offerCandidates.onSnapshot(snapshot => {
+    snapshot.docChanges().forEach(change => {
       if (change.type === 'added') {
-        let data = change.doc.data();
+        const data = change.doc.data();
         pc.addIceCandidate(new RTCIceCandidate(data));
       }
     });
   });
+
+  hangupButton.disabled = false;
 };
