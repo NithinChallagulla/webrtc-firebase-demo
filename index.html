@@ -5,6 +5,28 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebRTC Demo</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .videos {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 10px;
+      }
+      video {
+        width: 300px;
+        height: 225px;
+        background: black;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin: 10px 0;
+      }
+    </style>
   </head>
   <body>
     <h2>1. Start your Webcam</h2>
@@ -19,24 +41,26 @@
       </span>
     </div>
 
-    <button id="webcamButton">Start webcam</button>
+    <!-- ✅ Moved mic button into a grouped control section -->
+    <div class="controls">
+      <button id="webcamButton">Start webcam</button>
+      <button id="muteButton" disabled>Mute Mic</button>
+    </div>
 
     <h2>2. Create a new Call</h2>
     <button id="callButton" disabled>Create Call (offer)</button>
+    <p>Room ID: <input id="callInput" readonly /></p>
 
     <h2>3. Join a Call</h2>
     <p>Answer the call from a different browser window or device</p>
-    <input id="callInput" />
+    <input id="joinInput" placeholder="Enter Room ID" />
     <button id="answerButton" disabled>Answer</button>
 
     <h2>4. Hangup</h2>
     <button id="hangupButton" disabled>Hangup</button>
 
-    <h2>5. Mic Control</h2>
-    <button id="muteButton" disabled>Mute Mic</button>
-
-    <h2>6. Status</h2>
-    <p id="statusText">Status: Idle</p>
+    <h2>Call Status</h2>
+    <p id="callStatus">Idle</p>
 
     <script type="module" src="/main.js"></script>
   </body>
