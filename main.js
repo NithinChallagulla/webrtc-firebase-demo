@@ -26,29 +26,41 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-// Global media
 let localStream = null;
+let audioTrack = null;
+let isMuted = false;
 
-// DOM Elements
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
 const callButton = document.getElementById('callButton');
 const callInput = document.getElementById('callInput');
+const joinInput = document.getElementById('joinInput');
 const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
+const muteButton = document.getElementById('muteButton');
+const callStatus = document.getElementById('callStatus');
 
-// Start webcam
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   webcamVideo.srcObject = localStream;
+  audioTrack = localStream.getAudioTracks()[0];
 
   webcamButton.disabled = true;
   callButton.disabled = false;
   answerButton.disabled = false;
+  muteButton.disabled = false;
+
+  callStatus.innerText = 'Webcam ready';
 };
 
-// Caller
+muteButton.onclick = () => {
+  if (!audioTrack) return;
+  isMuted = !isMuted;
+  audioTrack.enabled = !isMuted;
+  muteButton.innerText = isMuted ? 'Unmute Mic' : 'Mute Mic';
+};
+
 callButton.onclick = async () => {
   const pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
@@ -58,17 +70,19 @@ callButton.onclick = async () => {
 
   pc.ontrack = event => {
     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    console.log('Remote track received:', event.streams);
   };
 
   pc.oniceconnectionstatechange = () => {
-    console.log('ICE state:', pc.iceConnectionState);
+    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
   };
 
   const callDoc = firestore.collection('calls').doc();
   const offerCandidates = callDoc.collection('offerCandidates');
   const answerCandidates = callDoc.collection('answerCandidates');
   callInput.value = callDoc.id;
+  navigator.clipboard.writeText(callDoc.id);
+
+  callStatus.innerText = 'Waiting for answer... (Room ID copied)';
 
   pc.onicecandidate = event => {
     if (event.candidate) {
@@ -78,19 +92,14 @@ callButton.onclick = async () => {
 
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
-
-  const offer = {
-    sdp: offerDescription.sdp,
-    type: offerDescription.type,
-  };
-
-  await callDoc.set({ offer });
+  await callDoc.set({ offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
 
   callDoc.onSnapshot(snapshot => {
     const data = snapshot.data();
     if (!pc.currentRemoteDescription && data?.answer) {
       const answerDescription = new RTCSessionDescription(data.answer);
       pc.setRemoteDescription(answerDescription);
+      callStatus.innerText = 'Connected';
     }
   });
 
@@ -106,9 +115,10 @@ callButton.onclick = async () => {
   hangupButton.disabled = false;
 };
 
-// Callee
 answerButton.onclick = async () => {
-  const callId = callInput.value;
+  const callId = joinInput.value.trim();
+  if (!callId) return;
+
   const callDoc = firestore.collection('calls').doc(callId);
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
@@ -121,11 +131,10 @@ answerButton.onclick = async () => {
 
   pc.ontrack = event => {
     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-    console.log('Remote track received:', event.streams);
   };
 
   pc.oniceconnectionstatechange = () => {
-    console.log('ICE state:', pc.iceConnectionState);
+    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
   };
 
   pc.onicecandidate = event => {
@@ -135,19 +144,12 @@ answerButton.onclick = async () => {
   };
 
   const callData = (await callDoc.get()).data();
-
   const offerDescription = callData.offer;
   await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
   const answerDescription = await pc.createAnswer();
   await pc.setLocalDescription(answerDescription);
-
-  const answer = {
-    type: answerDescription.type,
-    sdp: answerDescription.sdp,
-  };
-
-  await callDoc.update({ answer });
+  await callDoc.update({ answer: { type: answerDescription.type, sdp: answerDescription.sdp } });
 
   offerCandidates.onSnapshot(snapshot => {
     snapshot.docChanges().forEach(change => {
@@ -158,5 +160,6 @@ answerButton.onclick = async () => {
     });
   });
 
+  callStatus.innerText = 'Connected';
   hangupButton.disabled = false;
 };
