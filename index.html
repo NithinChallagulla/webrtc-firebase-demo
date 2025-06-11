@@ -1,81 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WebRTC Firebase App</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-      text-align: center;
-    }
-    video {
-      width: 45%;
-      margin: 10px;
-      border: 2px solid #333;
-      border-radius: 8px;
-    }
-    input {
-      padding: 8px;
-      margin: 8px;
-      width: 250px;
-    }
-    button {
-      padding: 10px 15px;
-      margin: 8px;
-      font-weight: bold;
-      border-radius: 5px;
-      border: none;
-      background: #1976d2;
-      color: white;
-      cursor: pointer;
-    }
-    button:disabled {
-      background: #aaa;
-    }
-    #callStatus {
-      font-weight: bold;
-      margin: 10px;
-    }
-    #map {
-      height: 300px;
-      width: 100%;
-      margin-top: 20px;
-      border: 2px solid #ccc;
-      border-radius: 10px;
-    }
-  </style>
-</head>
-<body>
-  <h1>WebRTC Firebase App</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebRTC + Map</title>
+    <link rel="icon" href="favicon.svg" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h2>Step 1: Start Your Webcam</h2>
+    <div class="videos">
+      <div>
+        <h3>Local Stream</h3>
+        <video id="webcamVideo" autoplay playsinline></video>
+      </div>
+      <div>
+        <h3>Remote Stream</h3>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </div>
 
-  <div>
-    <video id="webcamVideo" autoplay muted playsinline></video>
-    <video id="remoteVideo" autoplay playsinline></video>
-  </div>
+    <div class="controls">
+      <button id="webcamButton">🎥 Start Webcam</button>
+      <button id="callButton" disabled>📞 Create Call (Offer)</button>
 
-  <div>
-    <button id="webcamButton">Start Webcam</button>
-    <button id="callButton" disabled>Create Call</button>
-    <input id="callInput" readonly placeholder="Room ID">
-    <input id="joinInput" placeholder="Enter Room ID">
-    <button id="answerButton" disabled>Join Call</button>
-    <button id="muteButton" disabled>Mute Mic</button>
-    <button id="hangupButton" disabled>Hang Up</button>
-  </div>
+      <h3>Step 2: Join a Call</h3>
+      <input id="callInput" placeholder="Enter Call ID" />
+      <button id="answerButton" disabled>✅ Answer Call</button>
 
-  <p id="callStatus">Idle</p>
-  <div id="map"></div>
+      <h3>Step 3: Hang Up</h3>
+      <button id="hangupButton" disabled>⛔ Hang Up</button>
+    </div>
 
-  <!-- Firebase JS SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <h2>Live Map View</h2>
+    <div id="map"></div>
 
-  <!-- Google Maps API (your key added) -->
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBpDkzRCsi5uyogOQTGl2J5SWXxGcEs-AM&callback=initMap" async defer></script>
-
-  <!-- Main App JS -->
-  <script type="module" src="./main.js"></script>
-</body>
+    <script type="module" src="/main.js"></script>
+    <script
+      async
+      defer
+      src="https://maps.googleapis.com/maps/api/js?key=yY068Ewsfon2CoQlsAOz&callback=initMap"
+    ></script>
+  </body>
 </html>
