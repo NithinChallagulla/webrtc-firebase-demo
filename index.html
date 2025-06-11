@@ -2,80 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WebRTC + Firebase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebRTC Firebase App</title>
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
       padding: 20px;
+      text-align: center;
     }
     video {
       width: 45%;
       margin: 10px;
-      border: 2px solid #444;
+      border: 2px solid #333;
       border-radius: 8px;
+    }
+    input {
+      padding: 8px;
+      margin: 8px;
+      width: 250px;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 8px;
+      font-weight: bold;
+      border-radius: 5px;
+      border: none;
+      background: #1976d2;
+      color: white;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #aaa;
+    }
+    #callStatus {
+      font-weight: bold;
+      margin: 10px;
     }
     #map {
       height: 300px;
       width: 100%;
       margin-top: 20px;
-    }
-    input {
-      padding: 5px;
-      margin: 5px;
-      width: 250px;
-    }
-    button {
-      padding: 10px 15px;
-      margin: 5px;
-      border: none;
-      border-radius: 5px;
-      background-color: #1976d2;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    button:disabled {
-      background-color: #aaa;
-    }
-    #callStatus {
-      font-weight: bold;
-      margin-top: 10px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>WebRTC + Firebase Demo</h1>
+  <h1>WebRTC Firebase App</h1>
 
-  <!-- Video Elements -->
-  <video id="webcamVideo" autoplay muted playsinline></video>
-  <video id="remoteVideo" autoplay playsinline></video>
+  <div>
+    <video id="webcamVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
 
-  <!-- Controls -->
   <div>
     <button id="webcamButton">Start Webcam</button>
     <button id="callButton" disabled>Create Call</button>
-    <input id="callInput" readonly placeholder="Call ID">
-    <input id="joinInput" placeholder="Enter Call ID to Join">
+    <input id="callInput" readonly placeholder="Room ID">
+    <input id="joinInput" placeholder="Enter Room ID">
     <button id="answerButton" disabled>Join Call</button>
     <button id="muteButton" disabled>Mute Mic</button>
     <button id="hangupButton" disabled>Hang Up</button>
   </div>
 
   <p id="callStatus">Idle</p>
-
-  <!-- Map -->
   <div id="map"></div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase JS SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Google Maps API -->
+  <!-- Google Maps API (your key added) -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBpDkzRCsi5uyogOQTGl2J5SWXxGcEs-AM&callback=initMap" async defer></script>
 
-  <!-- App Entry Point -->
+  <!-- Main App JS -->
   <script type="module" src="./main.js"></script>
 </body>
 </html>
