@@ -2,16 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebRTC with Map</title>
+    <title>WebRTC Video Chat + Map</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
+    <h1>🚀 WebRTC Video Chat</h1>
+
     <h2>1. Start your Webcam</h2>
     <div class="videos">
       <span>
         <h3>Local Stream</h3>
-        <video id="webcamVideo" autoplay playsinline muted></video>
+        <video id="webcamVideo" autoplay playsinline></video>
       </span>
       <span>
         <h3>Remote Stream</h3>
@@ -19,29 +22,34 @@
       </span>
     </div>
 
-    <button id="webcamButton">Start webcam</button>
+    <div class="controls">
+      <button id="webcamButton">🎥 Start Webcam</button>
 
-    <h2>2. Create a new Call</h2>
-    <button id="callButton" disabled>Create Call (offer)</button>
+      <h2>2. Create a Call</h2>
+      <button id="callButton" disabled>📞 Create Call (Offer)</button>
 
-    <h2>3. Join a Call</h2>
-    <p>Answer the call from a different browser window or device</p>
-    <input id="callInput" placeholder="Enter Call ID" />
-    <button id="answerButton" disabled>Answer</button>
+      <h2>3. Join a Call</h2>
+      <p>Paste call ID from the other peer below</p>
+      <input id="callInput" placeholder="Enter Call ID" />
+      <button id="answerButton" disabled>📲 Answer</button>
 
-    <h2>4. Hangup</h2>
-    <button id="hangupButton" disabled>Hangup</button>
+      <h2>4. Hangup</h2>
+      <button id="hangupButton" disabled>❌ Hangup</button>
+    </div>
 
-    <h2>Live Map View</h2>
+    <hr />
+
+    <h2>🗺️ Live Location (Google Map)</h2>
     <div class="map-container">
       <iframe
         width="100%"
         height="400"
+        frameborder="0"
         style="border:0"
         loading="lazy"
         allowfullscreen
         referrerpolicy="no-referrer-when-downgrade"
-        src="https://www.google.com/maps/embed/v1/place?key=yY068Ewsfon2CoQlsAOz&q=Vijayawada">
+        src="https://www.google.com/maps/embed/v1/place?key=AIzaSyBl5lou5LOTc9WKAgAS-tAl6c8OD5uKbc0&q=Vijayawada">
       </iframe>
     </div>
 
