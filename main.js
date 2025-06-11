@@ -29,6 +29,7 @@ const servers = {
 let localStream = null;
 let audioTrack = null;
 let isMuted = false;
+let pc = null;
 
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
@@ -63,7 +64,7 @@ muteButton.onclick = () => {
 };
 
 callButton.onclick = async () => {
-  const pc = new RTCPeerConnection(servers);
+  pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -124,7 +125,7 @@ answerButton.onclick = async () => {
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
 
-  const pc = new RTCPeerConnection(servers);
+  pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -165,7 +166,28 @@ answerButton.onclick = async () => {
   hangupButton.disabled = false;
 };
 
-// Google Maps Integration
+hangupButton.onclick = async () => {
+  if (pc) {
+    pc.getSenders().forEach(sender => pc.removeTrack(sender));
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  remoteVideo.srcObject = null;
+  webcamVideo.srcObject = null;
+
+  webcamButton.disabled = false;
+  callButton.disabled = true;
+  answerButton.disabled = true;
+  muteButton.disabled = true;
+  hangupButton.disabled = true;
+  callStatus.innerText = 'Call ended';
+};
+
+// Google Maps Integration with natural random markers
 window.initMap = function () {
   if (!navigator.geolocation) {
     alert("Geolocation is not supported by your browser");
@@ -177,7 +199,7 @@ window.initMap = function () {
 
     const map = new google.maps.Map(mapContainer, {
       center: { lat: userLat, lng: userLng },
-      zoom: 10,
+      zoom: 11,
     });
 
     new google.maps.Marker({
@@ -186,19 +208,24 @@ window.initMap = function () {
       label: 'You',
     });
 
-    const radiusKm = 50;
-    const stepKm = 10;
-    for (let angle = 0; angle < 360; angle += 360 / (radiusKm / stepKm * 4)) {
-      for (let r = stepKm; r <= radiusKm; r += stepKm) {
-        const offsetLat = r / 111 * Math.cos(angle * Math.PI / 180);
-        const offsetLng = r / (111 * Math.cos(userLat * Math.PI / 180)) * Math.sin(angle * Math.PI / 180);
-        const markerLat = userLat + offsetLat;
-        const markerLng = userLng + offsetLng;
-        new google.maps.Marker({
-          position: { lat: markerLat, lng: markerLng },
-          map,
-        });
-      }
+    const radiusKm = 10;
+    const totalMarkers = 20;
+
+    for (let i = 0; i < totalMarkers; i++) {
+      const randomDistance = Math.random() * radiusKm;
+      const randomBearing = Math.random() * 360;
+
+      const offsetLat = randomDistance * Math.cos(randomBearing * Math.PI / 180) / 111;
+      const offsetLng = randomDistance * Math.sin(randomBearing * Math.PI / 180) / (111 * Math.cos(userLat * Math.PI / 180));
+
+      const markerLat = userLat + offsetLat;
+      const markerLng = userLng + offsetLng;
+
+      new google.maps.Marker({
+        position: { lat: markerLat, lng: markerLng },
+        map,
+        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+      });
     }
   });
 };
