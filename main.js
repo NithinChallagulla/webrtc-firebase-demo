@@ -1,4 +1,3 @@
- 
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 
@@ -35,8 +34,8 @@ const callInput = document.getElementById('callInput');
 const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
-const mapContainer = document.getElementById('map');
 
+// Start webcam
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   webcamVideo.srcObject = localStream;
@@ -46,6 +45,7 @@ webcamButton.onclick = async () => {
   answerButton.disabled = false;
 };
 
+// Caller
 callButton.onclick = async () => {
   const pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
@@ -71,7 +71,12 @@ callButton.onclick = async () => {
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
 
-  await callDoc.set({ offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
+  const offer = {
+    sdp: offerDescription.sdp,
+    type: offerDescription.type,
+  };
+
+  await callDoc.set({ offer });
 
   callDoc.onSnapshot(snapshot => {
     const data = snapshot.data();
@@ -93,8 +98,9 @@ callButton.onclick = async () => {
   hangupButton.disabled = false;
 };
 
+// Callee
 answerButton.onclick = async () => {
-  const callId = callInput.value.trim();
+  const callId = callInput.value;
   const callDoc = firestore.collection('calls').doc(callId);
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
@@ -122,7 +128,12 @@ answerButton.onclick = async () => {
   const answerDescription = await pc.createAnswer();
   await pc.setLocalDescription(answerDescription);
 
-  await callDoc.update({ answer: { type: answerDescription.type, sdp: answerDescription.sdp } });
+  const answer = {
+    type: answerDescription.type,
+    sdp: answerDescription.sdp,
+  };
+
+  await callDoc.update({ answer });
 
   offerCandidates.onSnapshot(snapshot => {
     snapshot.docChanges().forEach(change => {
@@ -134,46 +145,4 @@ answerButton.onclick = async () => {
   });
 
   hangupButton.disabled = false;
-};
-
-window.initMap = function () {
-  if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(position => {
-    const userLat = position.coords.latitude;
-    const userLng = position.coords.longitude;
-
-    const map = new google.maps.Map(mapContainer, {
-      center: { lat: userLat, lng: userLng },
-      zoom: 11,
-    });
-
-    new google.maps.Marker({
-      position: { lat: userLat, lng: userLng },
-      map,
-      label: 'You',
-    });
-
-    const radiusKm = 10;
-    const totalMarkers = 20;
-
-    for (let i = 0; i < totalMarkers; i++) {
-      const randomDistance = Math.random() * radiusKm;
-      const randomBearing = Math.random() * 360;
-
-      const offsetLat = randomDistance * Math.cos(randomBearing * Math.PI / 180) / 111;
-      const offsetLng = randomDistance * Math.sin(randomBearing * Math.PI / 180) / (111 * Math.cos(userLat * Math.PI / 180));
-
-      const markerLat = userLat + offsetLat;
-      const markerLng = userLng + offsetLng;
-
-      new google.maps.Marker({
-        position: { lat: markerLat, lng: markerLng },
-        map,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-      });
-    }
-  });
 };
