@@ -29,6 +29,7 @@ const servers = {
 let localStream = null;
 let audioTrack = null;
 let isMuted = false;
+let pc = null;
 
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
@@ -63,7 +64,7 @@ muteButton.onclick = () => {
 };
 
 callButton.onclick = async () => {
-  const pc = new RTCPeerConnection(servers);
+  pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -124,7 +125,7 @@ answerButton.onclick = async () => {
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
 
-  const pc = new RTCPeerConnection(servers);
+  pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -163,6 +164,27 @@ answerButton.onclick = async () => {
 
   callStatus.innerText = 'Connected';
   hangupButton.disabled = false;
+};
+
+hangupButton.onclick = async () => {
+  if (pc) {
+    pc.getSenders().forEach(sender => pc.removeTrack(sender));
+    pc.close();
+    pc = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  remoteVideo.srcObject = null;
+  webcamVideo.srcObject = null;
+
+  webcamButton.disabled = false;
+  callButton.disabled = true;
+  answerButton.disabled = true;
+  muteButton.disabled = true;
+  hangupButton.disabled = true;
+  callStatus.innerText = 'Call ended';
 };
 
 // Google Maps Integration with natural random markers
