@@ -40,6 +40,7 @@ const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 const muteButton = document.getElementById('muteButton');
 const callStatus = document.getElementById('callStatus');
+const mapContainer = document.getElementById('map');
 
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -162,4 +163,42 @@ answerButton.onclick = async () => {
 
   callStatus.innerText = 'Connected';
   hangupButton.disabled = false;
+};
+
+// Google Maps Integration
+window.initMap = function () {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(position => {
+    const userLat = position.coords.latitude;
+    const userLng = position.coords.longitude;
+
+    const map = new google.maps.Map(mapContainer, {
+      center: { lat: userLat, lng: userLng },
+      zoom: 10,
+    });
+
+    new google.maps.Marker({
+      position: { lat: userLat, lng: userLng },
+      map,
+      label: 'You',
+    });
+
+    const radiusKm = 50;
+    const stepKm = 10;
+    for (let angle = 0; angle < 360; angle += 360 / (radiusKm / stepKm * 4)) {
+      for (let r = stepKm; r <= radiusKm; r += stepKm) {
+        const offsetLat = r / 111 * Math.cos(angle * Math.PI / 180);
+        const offsetLng = r / (111 * Math.cos(userLat * Math.PI / 180)) * Math.sin(angle * Math.PI / 180);
+        const markerLat = userLat + offsetLat;
+        const markerLng = userLng + offsetLng;
+        new google.maps.Marker({
+          position: { lat: markerLat, lng: markerLng },
+          map,
+        });
+      }
+    }
+  });
 };
