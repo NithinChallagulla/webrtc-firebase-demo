@@ -1,231 +1,81 @@
-import './style.css';
-import firebase from 'firebase/app';
-import 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey: "AIzaSyDooJlQCfk104yS4XzOj1bgpVEoOB8rTnQ",
-  authDomain: "webrtc-demo-33437.firebaseapp.com",
-  projectId: "webrtc-demo-33437",
-  storageBucket: "webrtc-demo-33437.firebasestorage.app",
-  messagingSenderId: "99021841417",
-  appId: "1:99021841417:web:510b0562a0d20c437ec4d8",
-  measurementId: "G-H2KFF0EHS0"
-};
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-const firestore = firebase.firestore();
-
-const servers = {
-  iceServers: [
-    {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
-let localStream = null;
-let audioTrack = null;
-let isMuted = false;
-let pc = null;
-
-const webcamButton = document.getElementById('webcamButton');
-const webcamVideo = document.getElementById('webcamVideo');
-const callButton = document.getElementById('callButton');
-const callInput = document.getElementById('callInput');
-const joinInput = document.getElementById('joinInput');
-const answerButton = document.getElementById('answerButton');
-const remoteVideo = document.getElementById('remoteVideo');
-const hangupButton = document.getElementById('hangupButton');
-const muteButton = document.getElementById('muteButton');
-const callStatus = document.getElementById('callStatus');
-const mapContainer = document.getElementById('map');
-
-webcamButton.onclick = async () => {
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  webcamVideo.srcObject = localStream;
-  audioTrack = localStream.getAudioTracks()[0];
-
-  webcamButton.disabled = true;
-  callButton.disabled = false;
-  answerButton.disabled = false;
-  muteButton.disabled = false;
-
-  callStatus.innerText = 'Webcam ready';
-};
-
-muteButton.onclick = () => {
-  if (!audioTrack) return;
-  isMuted = !isMuted;
-  audioTrack.enabled = !isMuted;
-  muteButton.innerText = isMuted ? 'Unmute Mic' : 'Mute Mic';
-};
-
-callButton.onclick = async () => {
-  pc = new RTCPeerConnection(servers);
-  const remoteStream = new MediaStream();
-  remoteVideo.srcObject = remoteStream;
-
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-  pc.ontrack = event => {
-    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
-  };
-
-  const callDoc = firestore.collection('calls').doc();
-  const offerCandidates = callDoc.collection('offerCandidates');
-  const answerCandidates = callDoc.collection('answerCandidates');
-  callInput.value = callDoc.id;
-  navigator.clipboard.writeText(callDoc.id);
-
-  callStatus.innerText = 'Waiting for answer... (Room ID copied)';
-
-  pc.onicecandidate = event => {
-    if (event.candidate) {
-      offerCandidates.add(event.candidate.toJSON());
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebRTC + Firebase</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
     }
-  };
-
-  const offerDescription = await pc.createOffer();
-  await pc.setLocalDescription(offerDescription);
-  await callDoc.set({ offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
-
-  callDoc.onSnapshot(snapshot => {
-    const data = snapshot.data();
-    if (!pc.currentRemoteDescription && data?.answer) {
-      const answerDescription = new RTCSessionDescription(data.answer);
-      pc.setRemoteDescription(answerDescription);
-      callStatus.innerText = 'Connected';
+    video {
+      width: 45%;
+      margin: 10px;
+      border: 2px solid #444;
+      border-radius: 8px;
     }
-  });
-
-  answerCandidates.onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added') {
-        const candidate = new RTCIceCandidate(change.doc.data());
-        pc.addIceCandidate(candidate);
-      }
-    });
-  });
-
-  hangupButton.disabled = false;
-};
-
-answerButton.onclick = async () => {
-  const callId = joinInput.value.trim();
-  if (!callId) return;
-
-  const callDoc = firestore.collection('calls').doc(callId);
-  const answerCandidates = callDoc.collection('answerCandidates');
-  const offerCandidates = callDoc.collection('offerCandidates');
-
-  pc = new RTCPeerConnection(servers);
-  const remoteStream = new MediaStream();
-  remoteVideo.srcObject = remoteStream;
-
-  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-  pc.ontrack = event => {
-    event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
-  };
-
-  pc.onicecandidate = event => {
-    if (event.candidate) {
-      answerCandidates.add(event.candidate.toJSON());
+    #map {
+      height: 300px;
+      width: 100%;
+      margin-top: 20px;
     }
-  };
-
-  const callData = (await callDoc.get()).data();
-  const offerDescription = callData.offer;
-  await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
-  const answerDescription = await pc.createAnswer();
-  await pc.setLocalDescription(answerDescription);
-  await callDoc.update({ answer: { type: answerDescription.type, sdp: answerDescription.sdp } });
-
-  offerCandidates.onSnapshot(snapshot => {
-    snapshot.docChanges().forEach(change => {
-      if (change.type === 'added') {
-        const data = change.doc.data();
-        pc.addIceCandidate(new RTCIceCandidate(data));
-      }
-    });
-  });
-
-  callStatus.innerText = 'Connected';
-  hangupButton.disabled = false;
-};
-
-hangupButton.onclick = async () => {
-  if (pc) {
-    pc.getSenders().forEach(sender => pc.removeTrack(sender));
-    pc.close();
-    pc = null;
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
-  remoteVideo.srcObject = null;
-  webcamVideo.srcObject = null;
-
-  webcamButton.disabled = false;
-  callButton.disabled = true;
-  answerButton.disabled = true;
-  muteButton.disabled = true;
-  hangupButton.disabled = true;
-  callStatus.innerText = 'Call ended';
-};
-
-// Google Maps Integration with natural random markers
-window.initMap = function () {
-  if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser");
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(position => {
-    const userLat = position.coords.latitude;
-    const userLng = position.coords.longitude;
-
-    const map = new google.maps.Map(mapContainer, {
-      center: { lat: userLat, lng: userLng },
-      zoom: 11,
-    });
-
-    new google.maps.Marker({
-      position: { lat: userLat, lng: userLng },
-      map,
-      label: 'You',
-    });
-
-    const radiusKm = 10;
-    const totalMarkers = 20;
-
-    for (let i = 0; i < totalMarkers; i++) {
-      const randomDistance = Math.random() * radiusKm;
-      const randomBearing = Math.random() * 360;
-
-      const offsetLat = randomDistance * Math.cos(randomBearing * Math.PI / 180) / 111;
-      const offsetLng = randomDistance * Math.sin(randomBearing * Math.PI / 180) / (111 * Math.cos(userLat * Math.PI / 180));
-
-      const markerLat = userLat + offsetLat;
-      const markerLng = userLng + offsetLng;
-
-      new google.maps.Marker({
-        position: { lat: markerLat, lng: markerLng },
-        map,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-      });
+    input {
+      padding: 5px;
+      margin: 5px;
+      width: 250px;
     }
-  });
-};
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background-color: #1976d2;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #aaa;
+    }
+    #callStatus {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebRTC + Firebase Demo</h1>
+
+  <!-- Video Elements -->
+  <video id="webcamVideo" autoplay muted playsinline></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+
+  <!-- Controls -->
+  <div>
+    <button id="webcamButton">Start Webcam</button>
+    <button id="callButton" disabled>Create Call</button>
+    <input id="callInput" readonly placeholder="Call ID">
+    <input id="joinInput" placeholder="Enter Call ID to Join">
+    <button id="answerButton" disabled>Join Call</button>
+    <button id="muteButton" disabled>Mute Mic</button>
+    <button id="hangupButton" disabled>Hang Up</button>
+  </div>
+
+  <p id="callStatus">Idle</p>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Google Maps API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap" async defer></script>
+
+  <!-- App Entry Point -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
