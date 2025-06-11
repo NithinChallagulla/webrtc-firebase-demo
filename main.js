@@ -1,4 +1,4 @@
-import './style.css';
+import './style.css'; 
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 
@@ -27,44 +27,27 @@ const servers = {
 };
 
 let localStream = null;
-let audioTrack = null;
-let isMuted = false;
-let pc = null;
 
 const webcamButton = document.getElementById('webcamButton');
 const webcamVideo = document.getElementById('webcamVideo');
 const callButton = document.getElementById('callButton');
 const callInput = document.getElementById('callInput');
-const joinInput = document.getElementById('joinInput');
 const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
-const muteButton = document.getElementById('muteButton');
-const callStatus = document.getElementById('callStatus');
 const mapContainer = document.getElementById('map');
 
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   webcamVideo.srcObject = localStream;
-  audioTrack = localStream.getAudioTracks()[0];
 
   webcamButton.disabled = true;
   callButton.disabled = false;
   answerButton.disabled = false;
-  muteButton.disabled = false;
-
-  callStatus.innerText = 'Webcam ready';
-};
-
-muteButton.onclick = () => {
-  if (!audioTrack) return;
-  isMuted = !isMuted;
-  audioTrack.enabled = !isMuted;
-  muteButton.innerText = isMuted ? 'Unmute Mic' : 'Mute Mic';
 };
 
 callButton.onclick = async () => {
-  pc = new RTCPeerConnection(servers);
+  const pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -74,17 +57,10 @@ callButton.onclick = async () => {
     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
   };
 
-  pc.oniceconnectionstatechange = () => {
-    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
-  };
-
   const callDoc = firestore.collection('calls').doc();
   const offerCandidates = callDoc.collection('offerCandidates');
   const answerCandidates = callDoc.collection('answerCandidates');
   callInput.value = callDoc.id;
-  navigator.clipboard.writeText(callDoc.id);
-
-  callStatus.innerText = 'Waiting for answer... (Room ID copied)';
 
   pc.onicecandidate = event => {
     if (event.candidate) {
@@ -94,6 +70,7 @@ callButton.onclick = async () => {
 
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
+
   await callDoc.set({ offer: { sdp: offerDescription.sdp, type: offerDescription.type } });
 
   callDoc.onSnapshot(snapshot => {
@@ -101,7 +78,6 @@ callButton.onclick = async () => {
     if (!pc.currentRemoteDescription && data?.answer) {
       const answerDescription = new RTCSessionDescription(data.answer);
       pc.setRemoteDescription(answerDescription);
-      callStatus.innerText = 'Connected';
     }
   });
 
@@ -118,14 +94,12 @@ callButton.onclick = async () => {
 };
 
 answerButton.onclick = async () => {
-  const callId = joinInput.value.trim();
-  if (!callId) return;
-
+  const callId = callInput.value.trim();
   const callDoc = firestore.collection('calls').doc(callId);
   const answerCandidates = callDoc.collection('answerCandidates');
   const offerCandidates = callDoc.collection('offerCandidates');
 
-  pc = new RTCPeerConnection(servers);
+  const pc = new RTCPeerConnection(servers);
   const remoteStream = new MediaStream();
   remoteVideo.srcObject = remoteStream;
 
@@ -133,10 +107,6 @@ answerButton.onclick = async () => {
 
   pc.ontrack = event => {
     event.streams[0].getTracks().forEach(track => remoteStream.addTrack(track));
-  };
-
-  pc.oniceconnectionstatechange = () => {
-    callStatus.innerText = `ICE State: ${pc.iceConnectionState}`;
   };
 
   pc.onicecandidate = event => {
@@ -151,6 +121,7 @@ answerButton.onclick = async () => {
 
   const answerDescription = await pc.createAnswer();
   await pc.setLocalDescription(answerDescription);
+
   await callDoc.update({ answer: { type: answerDescription.type, sdp: answerDescription.sdp } });
 
   offerCandidates.onSnapshot(snapshot => {
@@ -162,32 +133,9 @@ answerButton.onclick = async () => {
     });
   });
 
-  callStatus.innerText = 'Connected';
   hangupButton.disabled = false;
 };
 
-hangupButton.onclick = async () => {
-  if (pc) {
-    pc.getSenders().forEach(sender => pc.removeTrack(sender));
-    pc.close();
-    pc = null;
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
-  remoteVideo.srcObject = null;
-  webcamVideo.srcObject = null;
-
-  webcamButton.disabled = false;
-  callButton.disabled = true;
-  answerButton.disabled = true;
-  muteButton.disabled = true;
-  hangupButton.disabled = true;
-  callStatus.innerText = 'Call ended';
-};
-
-// Google Maps Integration with natural random markers
 window.initMap = function () {
   if (!navigator.geolocation) {
     alert("Geolocation is not supported by your browser");
