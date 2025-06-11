@@ -84,35 +84,35 @@
     <h2>Live Map</h2>
     <div id="map"></div>
 
-    <!-- Your main JavaScript -->
-    <script type="module" src="/main.js"></script>
-
-    <!-- Leaflet Map JS -->
+    <!-- Load Leaflet BEFORE any custom script -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha512-YrwFf7JoZHi0bHTBeFWi3Flb1o8ymSMjtiKFT8mZWhksuQfXeXw3+E4iUs3Gz4tuKphOVzjyaq6+U/bpHAdYpw=="
       crossorigin=""
     ></script>
 
+    <!-- Map Initialization Script -->
     <script>
-  window.addEventListener('load', () => {
-    const map = L.map('map').setView([20.5937, 78.9629], 4); // Centered on India
+      document.addEventListener('DOMContentLoaded', () => {
+        const map = L.map('map').setView([20.5937, 78.9629], 4); // Centered on India
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap',
-    }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }).addTo(map);
 
-    // Add 10 random markers
-    for (let i = 0; i < 10; i++) {
-      const lat = 8 + Math.random() * 20;   // 8 to 28 (India)
-      const lng = 68 + Math.random() * 30;  // 68 to 98 (India)
-      L.marker([lat, lng])
-        .addTo(map)
-        .bindPopup(`📍 Random Pin ${i + 1}`);
-    }
-  });
-</script>
+        // Add 10 random markers in India
+        for (let i = 0; i < 10; i++) {
+          const lat = 8 + Math.random() * 20;   // 8 to 28 (India latitude)
+          const lng = 68 + Math.random() * 30;  // 68 to 98 (India longitude)
+          L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup(`📍 Random Pin ${i + 1}`);
+        }
+      });
+    </script>
 
+    <!-- Main WebRTC Script (placed last to avoid interfering with other scripts) -->
+    <script type="module" src="/main.js"></script>
   </body>
 </html>
