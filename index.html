@@ -3,43 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebRTC + Map</title>
-    <link rel="icon" href="favicon.svg" />
-    <link rel="stylesheet" href="style.css" />
+    <title>WebRTC with Map</title>
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <h2>Step 1: Start Your Webcam</h2>
+    <h2>1. Start your Webcam</h2>
     <div class="videos">
-      <div>
+      <span>
         <h3>Local Stream</h3>
-        <video id="webcamVideo" autoplay playsinline></video>
-      </div>
-      <div>
+        <video id="webcamVideo" autoplay playsinline muted></video>
+      </span>
+      <span>
         <h3>Remote Stream</h3>
         <video id="remoteVideo" autoplay playsinline></video>
-      </div>
+      </span>
     </div>
 
-    <div class="controls">
-      <button id="webcamButton">🎥 Start Webcam</button>
-      <button id="callButton" disabled>📞 Create Call (Offer)</button>
+    <button id="webcamButton">Start webcam</button>
 
-      <h3>Step 2: Join a Call</h3>
-      <input id="callInput" placeholder="Enter Call ID" />
-      <button id="answerButton" disabled>✅ Answer Call</button>
+    <h2>2. Create a new Call</h2>
+    <button id="callButton" disabled>Create Call (offer)</button>
 
-      <h3>Step 3: Hang Up</h3>
-      <button id="hangupButton" disabled>⛔ Hang Up</button>
-    </div>
+    <h2>3. Join a Call</h2>
+    <p>Answer the call from a different browser window or device</p>
+    <input id="callInput" placeholder="Enter Call ID" />
+    <button id="answerButton" disabled>Answer</button>
+
+    <h2>4. Hangup</h2>
+    <button id="hangupButton" disabled>Hangup</button>
 
     <h2>Live Map View</h2>
-    <div id="map"></div>
+    <div class="map-container">
+      <iframe
+        width="100%"
+        height="400"
+        style="border:0"
+        loading="lazy"
+        allowfullscreen
+        referrerpolicy="no-referrer-when-downgrade"
+        src="https://www.google.com/maps/embed/v1/place?key=yY068Ewsfon2CoQlsAOz&q=Vijayawada">
+      </iframe>
+    </div>
 
     <script type="module" src="/main.js"></script>
-    <script
-      async
-      defer
-      src="https://maps.googleapis.com/maps/api/js?key=yY068Ewsfon2CoQlsAOz&callback=initMap"
-    ></script>
   </body>
 </html>
